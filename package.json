@@ -1,0 +1,28 @@
+{
+  "name": "apartment-buying-checklist",
+  "version": "1.0.0",
+  "description": "מערכת דינמית לניהול ובדיקת דירות לקניה עם מסד נתונים וסנכרון רב-מכשירי",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "docker:build": "docker build -t apartment-checklist .",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "keywords": [
+    "real-estate",
+    "apartment-checklist",
+    "sqlite",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "qrcode": "^1.5.4"
+  }
+}
