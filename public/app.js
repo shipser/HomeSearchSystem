@@ -671,6 +671,8 @@ function populateFormWithData(formData) {
         elements[0].value = value;
       }
     }
+    //Manual addition to fix the print bug
+    autoGrow(field_הערות_כלליות_נוספות)
   }
 
   // Handle relevance toggle state
