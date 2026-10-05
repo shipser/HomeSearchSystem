@@ -173,7 +173,13 @@
         <div class="grid-2">
             <div class="form-group">
                 <label>תאריך פינוי:</label>
-                <input type="date" id="field_תאריך_פינוי" name="תאריך_פינוי">
+                <input type="date" id="field_תאריך_פינוי" name="תאריך_פינוי" oninput="handleEvacuationDateInput(this)">
+                <div class="checkbox-group" style="margin-top: 8px;">
+                    <label>
+                        <input type="checkbox" id="field_תאריך_פינוי_גמיש" name="תאריך_פינוי_גמיש" value="כן" onchange="handleFlexibleEvacuationDate(this)">
+                        תאריך פינוי גמיש
+                    </label>
+                </div>
             </div>
             <div></div>
         </div>

@@ -724,6 +724,24 @@ function triggerConditionalDisplays() {
   });
 }
 
+function handleFlexibleEvacuationDate(checkbox) {
+  const dateInput = document.getElementById('field_תאריך_פינוי');
+  if (checkbox && checkbox.checked && dateInput) {
+    dateInput.value = '';
+  }
+  triggerAutoSave();
+}
+
+function handleEvacuationDateInput(dateInput) {
+  if (dateInput && dateInput.value) {
+    const flexibleCheckbox = document.getElementById('field_תאריך_פינוי_גמיש');
+    if (flexibleCheckbox && flexibleCheckbox.checked) {
+      flexibleCheckbox.checked = false;
+    }
+  }
+  triggerAutoSave();
+}
+
 function updateDynamicLink() {
   const input = document.getElementById('field_קישור_למודעה');
   const linkBtn = document.getElementById('dynamic_ad_link');
