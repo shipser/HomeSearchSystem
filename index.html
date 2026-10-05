@@ -1009,11 +1009,11 @@
         <div class="form-group">
             <label>מצב העומס באזור:</label>
             <div class="radio-group">
-                <label><input type="radio" name="עומס_באזור" value="לא עמוס" checked> לא עמוס</label>
-                <label><input type="radio" name="עומס_באזור" value="עמוס כל הזמן"> עמוס כל הזמן</label>
-                <label><input type="radio" name="עומס_באזור" value="עמוס בשעות ספציפיות"> עמוס בשעות ספציפיות</label>
+                <label><input type="radio" name="עומס_באזור" value="לא עמוס" checked onchange="toggleTrafficHoursField(this.value)"> לא עמוס</label>
+                <label><input type="radio" name="עומס_באזור" value="עמוס כל הזמן" onchange="toggleTrafficHoursField(this.value)"> עמוס כל הזמן</label>
+                <label><input type="radio" name="עומס_באזור" value="עמוס בשעות ספציפיות" onchange="toggleTrafficHoursField(this.value)"> עמוס בשעות ספציפיות</label>
             </div>
-            <input type="text" id="field_עומס_שעות_פירוט" name="עומס_שעות_פירוט" placeholder="פרט שעות ספציפיות" style="margin-top:5px;">
+            <input type="text" id="field_עומס_שעות_פירוט" name="עומס_שעות_פירוט" placeholder="פרט שעות ספציפיות" class="hidden" style="margin-top:5px;">
         </div>
 
         <h2>עלויות קבועות ושיפוץ</h2>

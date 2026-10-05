@@ -724,6 +724,11 @@ function triggerConditionalDisplays() {
   });
 
   toggleManagementCompanyField();
+
+  const trafficRadios = document.querySelectorAll('input[name="עומס_באזור"]');
+  trafficRadios.forEach(r => {
+    if (r.checked) toggleTrafficHoursField(r.value);
+  });
 }
 
 function handleFlexibleEvacuationDate(checkbox) {
@@ -755,6 +760,17 @@ function toggleManagementCompanyField() {
   } else {
     managementCompanyInput.classList.add('hidden');
     managementCompanyInput.value = '';
+  }
+}
+
+function toggleTrafficHoursField(value) {
+  const field = document.getElementById('field_עומס_שעות_פירוט');
+  if (!field) return;
+  if (value === 'עמוס בשעות ספציפיות') {
+    field.classList.remove('hidden');
+  } else {
+    field.classList.add('hidden');
+    field.value = '';
   }
 }
 
