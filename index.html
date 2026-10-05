@@ -1038,11 +1038,11 @@
         <div class="form-group">
             <label>סוג ניהול ועד בית:</label>
             <div class="checkbox-group">
-                <label><input type="checkbox" name="סוג_ועד_בית[]" value="ללא"> ללא</label>
-                <label><input type="checkbox" name="סוג_ועד_בית[]" value="ועד דיירים"> ועד דיירים</label>
-                <label><input type="checkbox" name="סוג_ועד_בית[]" value="חברת ניהול"> חברת ניהול</label>
+                <label><input type="checkbox" name="סוג_ועד_בית[]" value="ללא" onchange="toggleManagementCompanyField()"> ללא</label>
+                <label><input type="checkbox" name="סוג_ועד_בית[]" value="ועד דיירים" onchange="toggleManagementCompanyField()"> ועד דיירים</label>
+                <label><input type="checkbox" name="סוג_ועד_בית[]" value="חברת ניהול" onchange="toggleManagementCompanyField()"> חברת ניהול</label>
             </div>
-            <input type="text" id="field_שם_חברת_ניהול" name="שם_חברת_ניהול" placeholder="שם חברת הניהול (אם יש)" style="margin-top:5px;">
+            <input type="text" id="field_שם_חברת_ניהול" name="שם_חברת_ניהול" placeholder="שם חברת הניהול (אם יש)" class="hidden" style="margin-top:5px;">
         </div>
 
         <div class="grid-2">

@@ -722,6 +722,8 @@ function triggerConditionalDisplays() {
   upperCabinetsRadios.forEach(r => {
     if (r.checked) toggleUpperCabinetsHeight(r.value === 'מותאם');
   });
+
+  toggleManagementCompanyField();
 }
 
 function handleFlexibleEvacuationDate(checkbox) {
@@ -741,6 +743,21 @@ function handleEvacuationDateInput(dateInput) {
   }
   triggerAutoSave();
 }
+
+function toggleManagementCompanyField() {
+  const managementCompanyInput = document.getElementById('field_שם_חברת_ניהול');
+  if (!managementCompanyInput) return;
+  const isManagementChecked = Array.from(
+    document.querySelectorAll('input[name="סוג_ועד_בית[]"]')
+  ).some(cb => cb.value === 'חברת ניהול' && cb.checked);
+  if (isManagementChecked) {
+    managementCompanyInput.classList.remove('hidden');
+  } else {
+    managementCompanyInput.classList.add('hidden');
+    managementCompanyInput.value = '';
+  }
+}
+
 
 function updateDynamicLink() {
   const input = document.getElementById('field_קישור_למודעה');
