@@ -1087,4 +1087,17 @@ dialog.modal-dialog::backdrop {
     border: 1px solid #ccc !important;
     background: #fff !important;
   }
+  #field_הערות_כלליות_נוספות {
+    overflow: visible !important;
+    height: auto !important;
+    resize: none !important;
+  }
+}
+
+/* Auto-grow notes textarea */
+#field_הערות_כלליות_נוספות {
+  overflow: hidden;
+  resize: none;
+  min-height: 120px;
+  height: auto;
 }

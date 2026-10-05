@@ -8,6 +8,12 @@ if (window.location.protocol === 'file:') {
   });
 }
 
+// Auto-grow textarea to fit its content
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
 // Unique client identifier to differentiate devices in SSE broadcasts
 const CLIENT_ID = 'client_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
 
@@ -672,6 +678,10 @@ function populateFormWithData(formData) {
   // Handle conditional sections display
   triggerConditionalDisplays();
   updateDynamicLink();
+
+  // Trigger auto-grow for notes textarea after data is loaded
+  const notesTextarea = document.getElementById('field_הערות_כלליות_נוספות');
+  if (notesTextarea) autoGrow(notesTextarea);
 }
 
 function triggerConditionalDisplays() {
