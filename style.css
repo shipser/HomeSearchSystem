@@ -1087,17 +1087,34 @@ dialog.modal-dialog::backdrop {
     border: 1px solid #ccc !important;
     background: #fff !important;
   }
+  /* Hide the textarea for print; show the mirror div instead */
   #field_הערות_כלליות_נוספות {
-    overflow: visible !important;
-    height: auto !important;
-    resize: none !important;
+    display: none !important;
+  }
+  #notes_print_mirror {
+    display: block !important;
   }
 }
 
-/* Auto-grow notes textarea */
+/* Auto-grow notes textarea — JS controls height via inline style */
 #field_הערות_כלליות_נוספות {
-  overflow: hidden;
-  resize: none;
+  overflow-y: auto;
+  resize: vertical;
   min-height: 120px;
-  height: auto;
 }
+
+/* Print mirror div — hidden on screen, shown when printing */
+#notes_print_mirror {
+  display: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-main);
+  border: 1px solid #ccc;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  min-height: 40px;
+  background: #fff;
+}
+
