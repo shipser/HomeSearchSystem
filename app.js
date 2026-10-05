@@ -908,12 +908,22 @@ function toggleRoomsAirconField(checkbox) {
 
 function toggleGasCompanyField(hasGas) {
   const gasCompanyInput = document.getElementById('gas_company_input');
-  if (!gasCompanyInput) return;
-  if (hasGas) {
-    gasCompanyInput.classList.remove('hidden');
-  } else {
-    gasCompanyInput.classList.add('hidden');
-    gasCompanyInput.value = '';
+  if (gasCompanyInput) {
+    if (hasGas) {
+      gasCompanyInput.classList.remove('hidden');
+    } else {
+      gasCompanyInput.classList.add('hidden');
+      gasCompanyInput.value = '';
+    }
+  }
+
+  const gasInfraContainer = document.getElementById('gas_infrastructure_container');
+  if (gasInfraContainer) {
+    if (hasGas) {
+      gasInfraContainer.classList.remove('hidden');
+    } else {
+      gasInfraContainer.classList.add('hidden');
+    }
   }
 }
 
