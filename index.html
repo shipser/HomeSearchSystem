@@ -14,9 +14,15 @@
             <div class="topbar-brand">
                 <span class="brand-icon">🏡</span>
                 <h1 class="brand-title">בדיקת דירה</h1>
-                <select id="apt_quick_select" class="apartment-quick-select" title="מעבר מהיר בין דירות">
-                    <option value="">טוען דירות...</option>
-                </select>
+                <div class="quick-select-group">
+                    <select id="apt_quick_select" class="apartment-quick-select" title="מעבר מהיר בין דירות">
+                        <option value="">טוען דירות...</option>
+                    </select>
+                    <button type="button" id="quick_select_filter_btn" class="quick-filter-toggle-btn active" onclick="toggleQuickSelectFilter()" title="סינון דירות: לחץ להחלפה בין 'רלוונטי בלבד' ל'כל הדירות'">
+                        <span id="quick_filter_icon">🎯</span>
+                        <span id="quick_filter_label">רלוונטי בלבד</span>
+                    </button>
+                </div>
             </div>
 
             <div class="topbar-actions">

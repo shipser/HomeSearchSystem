@@ -92,6 +92,45 @@ body {
   cursor: pointer;
 }
 
+.quick-select-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-filter-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: #f8fafc;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.quick-filter-toggle-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: var(--text-main);
+}
+
+.quick-filter-toggle-btn.active {
+  background: var(--success-bg);
+  color: #15803d;
+  border-color: #86efac;
+  box-shadow: 0 1px 3px rgba(22, 163, 74, 0.15);
+}
+
+.quick-filter-toggle-btn.active:hover {
+  background: #bbf7d0;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;
@@ -1006,9 +1045,19 @@ dialog.modal-dialog::backdrop {
     width: 100%;
     justify-content: space-between;
   }
+  .quick-select-group {
+    width: 100%;
+    display: flex;
+    gap: 6px;
+  }
   .apartment-quick-select {
     max-width: 100%;
     flex: 1;
+    min-width: 0;
+  }
+  .quick-filter-toggle-btn {
+    padding: 6px 8px;
+    font-size: 11px;
   }
 }
 

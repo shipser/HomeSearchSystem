@@ -92,6 +92,45 @@ body {
   cursor: pointer;
 }
 
+.quick-select-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-filter-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: #f8fafc;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.quick-filter-toggle-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: var(--text-main);
+}
+
+.quick-filter-toggle-btn.active {
+  background: var(--success-bg);
+  color: #15803d;
+  border-color: #86efac;
+  box-shadow: 0 1px 3px rgba(22, 163, 74, 0.15);
+}
+
+.quick-filter-toggle-btn.active:hover {
+  background: #bbf7d0;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;
@@ -292,6 +331,36 @@ body {
   padding: 0;
 }
 
+.active-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.relevance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.relevance-badge.badge-relevant {
+  background: var(--success-bg);
+  border: 1px solid #86efac;
+  color: #15803d;
+}
+
+.relevance-badge.badge-not-relevant {
+  background: var(--danger-bg);
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+}
+
 .active-apt-meta {
   font-size: 12px;
   color: var(--text-muted);
@@ -301,6 +370,102 @@ body {
 .active-apt-actions {
   display: flex;
   gap: 8px;
+}
+
+/* Relevance Toggle Component */
+.relevance-toggle-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  margin-bottom: 25px;
+  gap: 15px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.relevance-toggle-card.status-not-relevant {
+  background: #fff5f5;
+  border-color: #fed7d7;
+}
+
+.relevance-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.relevance-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.relevance-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.relevance-toggle-control {
+  display: inline-flex;
+  background: #e2e8f0;
+  padding: 4px;
+  border-radius: 30px;
+  gap: 4px;
+  user-select: none;
+}
+
+.toggle-option {
+  position: relative;
+  cursor: pointer;
+  margin: 0 !important;
+}
+
+.toggle-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #475569;
+  background: transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.toggle-option:hover .toggle-btn {
+  color: #0f172a;
+}
+
+.toggle-relevant input[type="radio"]:checked + .toggle-btn {
+  background: #16a34a;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35);
+}
+
+.toggle-not-relevant input[type="radio"]:checked + .toggle-btn {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+}
+
+.toggle-icon {
+  font-size: 12px;
 }
 
 /* Typography & Sections */
@@ -724,6 +889,75 @@ dialog.modal-dialog::backdrop {
   background: #fff;
 }
 
+.apt-tag.tag-relevant {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+  font-weight: 600;
+}
+
+.apt-tag.tag-not-relevant {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+  font-weight: 600;
+}
+
+.apt-card.is-not-relevant {
+  border-right: 4px solid #ef4444;
+}
+
+.apt-card.is-not-relevant .apt-card-title {
+  color: #64748b;
+}
+
+/* Modal Filters Header & Tabs */
+.forms-filters-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-filter-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  background: #fff;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.filter-tab:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.filter-tab.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.filter-tab#tab_filter_relevant.active {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+.filter-tab#tab_filter_not_relevant.active {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
 .apt-card-actions {
   display: flex;
   gap: 6px;
@@ -811,9 +1045,19 @@ dialog.modal-dialog::backdrop {
     width: 100%;
     justify-content: space-between;
   }
+  .quick-select-group {
+    width: 100%;
+    display: flex;
+    gap: 6px;
+  }
   .apartment-quick-select {
     max-width: 100%;
     flex: 1;
+    min-width: 0;
+  }
+  .quick-filter-toggle-btn {
+    padding: 6px 8px;
+    font-size: 11px;
   }
 }
 

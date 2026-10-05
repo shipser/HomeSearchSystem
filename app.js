@@ -281,27 +281,130 @@ function updateRelevanceBadge(value) {
   }
 }
 
+let quickSelectFilter = localStorage.getItem('apt_quick_filter_preference') || 'relevant';
+
+function toggleQuickSelectFilter() {
+  quickSelectFilter = (quickSelectFilter === 'relevant') ? 'all' : 'relevant';
+  localStorage.setItem('apt_quick_filter_preference', quickSelectFilter);
+  updateQuickSelectFilterBtn();
+  updateQuickSelect();
+  showToast(quickSelectFilter === 'relevant' ? 'מעבר מהיר: מציג דירות רלוונטיות בלבד' : 'מעבר מהיר: מציג את כל הדירות', 'info');
+}
+
+function updateQuickSelectFilterBtn() {
+  const btn = document.getElementById('quick_select_filter_btn');
+  const icon = document.getElementById('quick_filter_icon');
+  const label = document.getElementById('quick_filter_label');
+  if (!btn) return;
+
+  if (quickSelectFilter === 'relevant') {
+    btn.classList.add('active');
+    btn.title = "מסנן: רלוונטי בלבד (לחץ להצגת כל הדירות)";
+    if (icon) icon.innerText = '🎯';
+    if (label) label.innerText = 'רלוונטי בלבד';
+  } else {
+    btn.classList.remove('active');
+    btn.title = "מסנן: כל הדירות (לחץ לסינון רלוונטי בלבד)";
+    if (icon) icon.innerText = '📋';
+    if (label) label.innerText = 'כל הדירות';
+  }
+}
+
+function createQuickSelectOption(form, isNotRelevant = false) {
+  const opt = document.createElement('option');
+  opt.value = form.id;
+  const title = form.address || form.title || 'דירה ללא כתובת';
+  const price = form.price_display ? ` (${form.price_display})` : '';
+  const prefix = isNotRelevant ? '❌ ' : '';
+  opt.innerText = `${prefix}${title}${price}`;
+  if (form.id === currentFormId) {
+    opt.selected = true;
+  }
+  return opt;
+}
+
 function updateQuickSelect() {
   if (!aptQuickSelect) return;
   aptQuickSelect.innerHTML = '';
-  
-  allFormsSummaries.forEach(form => {
-    const opt = document.createElement('option');
-    opt.value = form.id;
-    const title = form.address || form.title || 'דירה ללא כתובת';
-    const price = form.price_display ? ` (${form.price_display})` : '';
-    const isNotRelevant = (form.is_relevant === 0 || form.is_relevant === '0');
-    const notRelevantPrefix = isNotRelevant ? '❌ [לא רלוונטי] ' : '';
-    opt.innerText = `${notRelevantPrefix}${title}${price}`;
-    if (form.id === currentFormId) {
-      opt.selected = true;
+  updateQuickSelectFilterBtn();
+
+  if (allFormsSummaries.length === 0) {
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.innerText = 'אין דירות שמורות';
+    aptQuickSelect.appendChild(emptyOpt);
+    return;
+  }
+
+  const isRelevantForm = (form) => (form.is_relevant === undefined || form.is_relevant === 1 || form.is_relevant === '1' || form.is_relevant === true);
+
+  const relevantForms = allFormsSummaries.filter(isRelevantForm);
+  const notRelevantForms = allFormsSummaries.filter(f => !isRelevantForm(f));
+
+  if (quickSelectFilter === 'relevant') {
+    // Show relevant forms
+    if (relevantForms.length === 0) {
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.innerText = 'אין דירות רלוונטיות (לחץ "רלוונטי בלבד" לצפיה בכל)';
+      aptQuickSelect.appendChild(noneOpt);
+    } else {
+      relevantForms.forEach(form => {
+        aptQuickSelect.appendChild(createQuickSelectOption(form, false));
+      });
     }
-    aptQuickSelect.appendChild(opt);
-  });
+
+    // If current active form is marked not relevant, show it in a dedicated optgroup so user does not lose view
+    if (currentFormId && notRelevantForms.some(f => f.id === currentFormId)) {
+      const currentNotRel = notRelevantForms.find(f => f.id === currentFormId);
+      if (currentNotRel) {
+        const curGroup = document.createElement('optgroup');
+        curGroup.label = '⚠️ דירה פתוחה כעת (לא רלוונטית)';
+        curGroup.appendChild(createQuickSelectOption(currentNotRel, true));
+        aptQuickSelect.appendChild(curGroup);
+      }
+    }
+  } else {
+    // Show all forms organized by relevance
+    if (relevantForms.length > 0) {
+      const relGroup = document.createElement('optgroup');
+      relGroup.label = `✅ דירות רלוונטיות (${relevantForms.length})`;
+      relevantForms.forEach(form => {
+        relGroup.appendChild(createQuickSelectOption(form, false));
+      });
+      aptQuickSelect.appendChild(relGroup);
+    }
+
+    if (notRelevantForms.length > 0) {
+      const notRelGroup = document.createElement('optgroup');
+      notRelGroup.label = `❌ לא רלוונטיות (${notRelevantForms.length})`;
+      notRelevantForms.forEach(form => {
+        notRelGroup.appendChild(createQuickSelectOption(form, true));
+      });
+      aptQuickSelect.appendChild(notRelGroup);
+    }
+  }
+
+  // Action option to toggle filter directly from select dropdown
+  const filterActionGroup = document.createElement('optgroup');
+  filterActionGroup.label = '⚙️ אפשרויות סינון';
+  const filterActionOpt = document.createElement('option');
+  filterActionOpt.value = '__TOGGLE_FILTER__';
+  filterActionOpt.innerText = quickSelectFilter === 'relevant' ? '📋 הצג את כל הדירות במעבר המהיר...' : '🎯 הצג רלוונטי בלבד במעבר המהיר...';
+  filterActionGroup.appendChild(filterActionOpt);
+  aptQuickSelect.appendChild(filterActionGroup);
+
+  if (currentFormId) {
+    aptQuickSelect.value = currentFormId;
+  }
 }
 
 function onQuickSelectChange(event) {
   const selectedId = event.target.value;
+  if (selectedId === '__TOGGLE_FILTER__') {
+    toggleQuickSelectFilter();
+    return;
+  }
   if (selectedId && selectedId !== currentFormId) {
     loadFormById(selectedId);
   }
