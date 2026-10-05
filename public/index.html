@@ -84,7 +84,10 @@
         <!-- כותרת ופרטי הטופס הפעיל -->
         <div class="form-active-header">
             <div class="active-apt-info">
-                <h2 id="active_apt_title">טוען טופס...</h2>
+                <div class="active-title-row">
+                    <h2 id="active_apt_title">טוען טופס...</h2>
+                    <span id="active_apt_relevance_badge" class="relevance-badge badge-relevant">רלוונטי</span>
+                </div>
                 <div id="active_apt_meta" class="active-apt-meta">מזהה: -</div>
             </div>
             <div class="active-apt-actions">
@@ -102,6 +105,30 @@
         <!-- טופס הבדיקה המלא (כל השדות המקוריים נשמרו בדיוק מלא) -->
         <form id="apartment_form" onsubmit="event.preventDefault(); saveFormImmediately(true);">
             <input type="hidden" id="form_id" name="form_id">
+
+            <!-- בחירת רלוונטיות (טוגל מעוצב) -->
+            <div class="relevance-toggle-card">
+                <div class="relevance-info">
+                    <span class="relevance-heading">סטטוס התאמת הנכס:</span>
+                    <span class="relevance-sub">האם הדירה עדיין רלוונטית לקניה או שהוסרה מהרשימה?</span>
+                </div>
+                <div class="relevance-toggle-control" role="radiogroup" aria-label="סטטוס רלוונטיות">
+                    <label class="toggle-option toggle-relevant" id="toggle_label_relevant">
+                        <input type="radio" name="רלוונטיות" id="radio_relevant" value="רלוונטי" checked onchange="handleRelevanceToggle(this.value)">
+                        <span class="toggle-btn">
+                            <span class="toggle-icon">✔</span>
+                            <span>רלוונטי</span>
+                        </span>
+                    </label>
+                    <label class="toggle-option toggle-not-relevant" id="toggle_label_not_relevant">
+                        <input type="radio" name="רלוונטיות" id="radio_not_relevant" value="לא רלוונטי" onchange="handleRelevanceToggle(this.value)">
+                        <span class="toggle-btn">
+                            <span class="toggle-icon">✖</span>
+                            <span>לא רלוונטי</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
 
         <h2>פרטים כלליים על הנכס</h2>
         <div class="form-group"><label>כתובת:</label><input type="text" id="field_כתובת" name="כתובת" required></div>
@@ -1090,8 +1117,15 @@
             <button type="button" class="modal-close-btn" onclick="closeFormsModal()">&times;</button>
         </div>
         <div class="modal-body">
-            <div class="forms-search-box">
-                <input type="text" id="forms_search_input" placeholder="🔍 חיפוש לפי כתובת, מחיר, חדרים או הערות...">
+            <div class="forms-filters-header">
+                <div class="forms-search-box">
+                    <input type="text" id="forms_search_input" placeholder="🔍 חיפוש לפי כתובת, מחיר, חדרים או הערות...">
+                </div>
+                <div class="modal-filter-tabs">
+                    <button type="button" class="filter-tab active" id="tab_filter_all" onclick="setFormsRelevanceFilter('all')">הכל (<span id="count_all">0</span>)</button>
+                    <button type="button" class="filter-tab" id="tab_filter_relevant" onclick="setFormsRelevanceFilter('relevant')">✔ רלוונטי (<span id="count_relevant">0</span>)</button>
+                    <button type="button" class="filter-tab" id="tab_filter_not_relevant" onclick="setFormsRelevanceFilter('not_relevant')">✖ לא רלוונטי (<span id="count_not_relevant">0</span>)</button>
+                </div>
             </div>
 
             <div id="forms_cards_container" class="apt-cards-list">

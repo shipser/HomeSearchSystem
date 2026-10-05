@@ -26,6 +26,7 @@ db.exec(`
     total_floors TEXT DEFAULT '',
     area REAL DEFAULT 0,
     notes TEXT DEFAULT '',
+    is_relevant INTEGER DEFAULT 1,
     data_json TEXT NOT NULL DEFAULT '{}',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -34,12 +35,22 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_apartments_updated ON apartments(updated_at DESC);
 `);
 
+// Migration: ensure is_relevant column exists for existing databases
+try {
+  const cols = db.pragma('table_info(apartments)');
+  if (!cols.some(c => c.name === 'is_relevant')) {
+    db.exec(`ALTER TABLE apartments ADD COLUMN is_relevant INTEGER DEFAULT 1`);
+  }
+} catch (e) {
+  // column check/add completed
+}
+
 /**
  * Get all apartments (summary list for quick switching/rendering)
  */
 function getAllApartments() {
   const stmt = db.prepare(`
-    SELECT id, title, address, price_display, price_numeric, rooms, floor, total_floors, area, created_at, updated_at
+    SELECT id, title, address, price_display, price_numeric, rooms, floor, total_floors, area, is_relevant, created_at, updated_at
     FROM apartments
     ORDER BY updated_at DESC
   `);
@@ -77,6 +88,7 @@ function saveApartment(id, data = {}, customTitle = null) {
   const totalFloors = (data['מתוך_קומות'] || '').trim();
   const area = parseFloat(data['שטח_מודעה'] || data['שטח_ארנונה'] || 0) || 0;
   const notes = (data['הערות_כלליות_נוספות'] || '').trim();
+  const isRelevant = data['רלוונטיות'] === 'לא רלוונטי' ? 0 : 1;
   const dataJson = JSON.stringify(data);
   const now = new Date().toISOString();
 
@@ -85,16 +97,16 @@ function saveApartment(id, data = {}, customTitle = null) {
   if (existing) {
     const updateStmt = db.prepare(`
       UPDATE apartments 
-      SET title = ?, address = ?, price_display = ?, price_numeric = ?, rooms = ?, floor = ?, total_floors = ?, area = ?, notes = ?, data_json = ?, updated_at = ?
+      SET title = ?, address = ?, price_display = ?, price_numeric = ?, rooms = ?, floor = ?, total_floors = ?, area = ?, notes = ?, is_relevant = ?, data_json = ?, updated_at = ?
       WHERE id = ?
     `);
-    updateStmt.run(title, address, priceDisplay, priceNumeric, rooms, floor, totalFloors, area, notes, dataJson, now, id);
+    updateStmt.run(title, address, priceDisplay, priceNumeric, rooms, floor, totalFloors, area, notes, isRelevant, dataJson, now, id);
   } else {
     const insertStmt = db.prepare(`
-      INSERT INTO apartments (id, title, address, price_display, price_numeric, rooms, floor, total_floors, area, notes, data_json, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO apartments (id, title, address, price_display, price_numeric, rooms, floor, total_floors, area, notes, is_relevant, data_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    insertStmt.run(id, title, address, priceDisplay, priceNumeric, rooms, floor, totalFloors, area, notes, dataJson, now, now);
+    insertStmt.run(id, title, address, priceDisplay, priceNumeric, rooms, floor, totalFloors, area, notes, isRelevant, dataJson, now, now);
   }
 
   return getApartmentById(id);
@@ -105,6 +117,9 @@ function saveApartment(id, data = {}, customTitle = null) {
  */
 function createApartment(initialData = {}, title = 'דירה חדשה (ללא כתובת)') {
   const id = 'apt_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+  if (!initialData['רלוונטיות']) {
+    initialData['רלוונטיות'] = 'רלוונטי';
+  }
   return saveApartment(id, initialData, title);
 }
 

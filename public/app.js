@@ -224,6 +224,61 @@ function updateHeaderInfo(formMeta) {
     const updated = formMeta.updated_at ? new Date(formMeta.updated_at).toLocaleString('he-IL') : '';
     activeAptMeta.innerText = `מזהה טופס: ${formMeta.id} | עודכן: ${updated}`;
   }
+  const isRelevant = formMeta.is_relevant !== undefined 
+    ? (formMeta.is_relevant === 1 || formMeta.is_relevant === true || formMeta.is_relevant === '1')
+    : (currentFormData['רלוונטיות'] !== 'לא רלוונטי');
+  updateRelevanceBadge(isRelevant ? 'רלוונטי' : 'לא רלוונטי');
+}
+
+function handleRelevanceToggle(value, triggerSave = true) {
+  const isRelevant = value === 'רלוונטי';
+  const radioRelevant = document.getElementById('radio_relevant');
+  const radioNotRelevant = document.getElementById('radio_not_relevant');
+  if (radioRelevant && radioNotRelevant) {
+    if (isRelevant) {
+      radioRelevant.checked = true;
+      radioNotRelevant.checked = false;
+    } else {
+      radioRelevant.checked = false;
+      radioNotRelevant.checked = true;
+    }
+  }
+
+  const card = document.querySelector('.relevance-toggle-card');
+  if (card) {
+    if (isRelevant) {
+      card.classList.remove('status-not-relevant');
+    } else {
+      card.classList.add('status-not-relevant');
+    }
+  }
+
+  updateRelevanceBadge(value);
+
+  // Optimistically update current form in summaries
+  if (currentFormId) {
+    const summary = allFormsSummaries.find(f => f.id === currentFormId);
+    if (summary) {
+      summary.is_relevant = isRelevant ? 1 : 0;
+      updateQuickSelect();
+    }
+  }
+
+  if (triggerSave) {
+    triggerAutoSave();
+  }
+}
+
+function updateRelevanceBadge(value) {
+  const badge = document.getElementById('active_apt_relevance_badge');
+  if (!badge) return;
+  if (value === 'לא רלוונטי') {
+    badge.className = 'relevance-badge badge-not-relevant';
+    badge.innerText = '✖ לא רלוונטי';
+  } else {
+    badge.className = 'relevance-badge badge-relevant';
+    badge.innerText = '✔ רלוונטי';
+  }
 }
 
 function updateQuickSelect() {
@@ -235,7 +290,9 @@ function updateQuickSelect() {
     opt.value = form.id;
     const title = form.address || form.title || 'דירה ללא כתובת';
     const price = form.price_display ? ` (${form.price_display})` : '';
-    opt.innerText = `${title}${price}`;
+    const isNotRelevant = (form.is_relevant === 0 || form.is_relevant === '0');
+    const notRelevantPrefix = isNotRelevant ? '❌ [לא רלוונטי] ' : '';
+    opt.innerText = `${notRelevantPrefix}${title}${price}`;
     if (form.id === currentFormId) {
       opt.selected = true;
     }
@@ -504,6 +561,10 @@ function populateFormWithData(formData) {
       }
     }
   }
+
+  // Handle relevance toggle state
+  const relevanceVal = formData['רלוונטיות'] || 'רלוונטי';
+  handleRelevanceToggle(relevanceVal, false);
 
   // Handle conditional sections display
   triggerConditionalDisplays();
@@ -825,13 +886,50 @@ function closeFormsModal() {
   if (formsDialog) formsDialog.close();
 }
 
+let currentRelevanceFilter = 'all';
+
+function setFormsRelevanceFilter(filter) {
+  currentRelevanceFilter = filter;
+  const tabs = ['all', 'relevant', 'not_relevant'];
+  tabs.forEach(f => {
+    const tabEl = document.getElementById(`tab_filter_${f}`);
+    if (tabEl) {
+      if (f === filter) tabEl.classList.add('active');
+      else tabEl.classList.remove('active');
+    }
+  });
+  renderFormsListModal();
+}
+
 function renderFormsListModal(filterQuery = '') {
   if (!formsCardsContainer) return;
   
   const query = (filterQuery || (formsSearchInput ? formsSearchInput.value : '')).trim().toLowerCase();
   formsCardsContainer.innerHTML = '';
 
+  // Calculate counters
+  let countAll = allFormsSummaries.length;
+  let countRelevant = 0;
+  let countNotRelevant = 0;
+
+  allFormsSummaries.forEach(form => {
+    const isRel = (form.is_relevant === undefined || form.is_relevant === 1 || form.is_relevant === '1' || form.is_relevant === true);
+    if (isRel) countRelevant++;
+    else countNotRelevant++;
+  });
+
+  const countAllEl = document.getElementById('count_all');
+  const countRelEl = document.getElementById('count_relevant');
+  const countNotRelEl = document.getElementById('count_not_relevant');
+  if (countAllEl) countAllEl.innerText = countAll;
+  if (countRelEl) countRelEl.innerText = countRelevant;
+  if (countNotRelEl) countNotRelEl.innerText = countNotRelevant;
+
   const filtered = allFormsSummaries.filter(form => {
+    const isRel = (form.is_relevant === undefined || form.is_relevant === 1 || form.is_relevant === '1' || form.is_relevant === true);
+    if (currentRelevanceFilter === 'relevant' && !isRel) return false;
+    if (currentRelevanceFilter === 'not_relevant' && isRel) return false;
+
     if (!query) return true;
     const title = (form.title || '').toLowerCase();
     const address = (form.address || '').toLowerCase();
@@ -851,11 +949,16 @@ function renderFormsListModal(filterQuery = '') {
 
   filtered.forEach(form => {
     const isCurrent = form.id === currentFormId;
+    const isRel = (form.is_relevant === undefined || form.is_relevant === 1 || form.is_relevant === '1' || form.is_relevant === true);
     const address = form.address || form.title || 'דירה חדשה (ללא כתובת)';
     const dateFormatted = form.updated_at ? new Date(form.updated_at).toLocaleDateString('he-IL') : '';
 
+    const relevanceTag = isRel 
+      ? `<span class="apt-tag tag-relevant">✔ רלוונטי</span>`
+      : `<span class="apt-tag tag-not-relevant">✖ לא רלוונטי</span>`;
+
     const card = document.createElement('div');
-    card.className = `apt-card ${isCurrent ? 'active' : ''}`;
+    card.className = `apt-card ${isCurrent ? 'active' : ''} ${!isRel ? 'is-not-relevant' : ''}`;
     card.onclick = () => {
       loadFormById(form.id);
       closeFormsModal();
@@ -865,6 +968,7 @@ function renderFormsListModal(filterQuery = '') {
       <div class="apt-card-info">
         <div class="apt-card-title">${address} ${isCurrent ? ' <span style="color:#15803d; font-size:12px;">(פעיל כעת)</span>' : ''}</div>
         <div class="apt-card-tags">
+          ${relevanceTag}
           ${form.price_display ? `<span class="apt-tag">💰 ${form.price_display}</span>` : ''}
           ${form.rooms ? `<span class="apt-tag">🛏️ ${form.rooms} חדרים</span>` : ''}
           ${form.floor ? `<span class="apt-tag">🏢 קומה ${form.floor}</span>` : ''}
