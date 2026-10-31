@@ -778,6 +778,33 @@ function triggerConditionalDisplays() {
   trafficRadios.forEach(r => {
     if (r.checked) toggleTrafficHoursField(r.value);
   });
+
+  const viewingRadios = document.querySelectorAll('input[name="מי_ראה"]');
+  viewingRadios.forEach(r => {
+    if (r.checked) toggleViewingFields(r.value);
+  });
+}
+
+function toggleViewingFields(value) {
+  const detailsContainer = document.getElementById('viewing_details_container');
+  const nameContainer = document.getElementById('viewer_name_container');
+  const nameInput = document.getElementById('field_מי_ראה_שם');
+
+  if (!detailsContainer) return;
+
+  if (value === 'אף אחד') {
+    detailsContainer.classList.add('hidden');
+    if (nameContainer) nameContainer.classList.add('hidden');
+    if (nameInput) nameInput.value = '';
+  } else {
+    detailsContainer.classList.remove('hidden');
+    if (value === 'רק אחד מאיתנו') {
+      if (nameContainer) nameContainer.classList.remove('hidden');
+    } else {
+      if (nameContainer) nameContainer.classList.add('hidden');
+      if (nameInput) nameInput.value = '';
+    }
+  }
 }
 
 function handleFlexibleEvacuationDate(checkbox) {

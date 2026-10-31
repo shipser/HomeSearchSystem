@@ -155,6 +155,26 @@
             </div>
         </div>
 
+        <div class="form-group">
+            <label>מי ראה את הדירה:</label>
+            <div class="radio-group">
+                <label><input type="radio" name="מי_ראה" value="אף אחד" checked onchange="toggleViewingFields(this.value)"> אף אחד</label>
+                <label><input type="radio" name="מי_ראה" value="רק אחד מאיתנו" onchange="toggleViewingFields(this.value)"> רק אחד מאיתנו</label>
+                <label><input type="radio" name="מי_ראה" value="ביחד" onchange="toggleViewingFields(this.value)"> ביחד</label>
+                <label><input type="radio" name="מי_ראה" value="עם ההורים" onchange="toggleViewingFields(this.value)"> עם ההורים</label>
+            </div>
+            <div id="viewing_details_container" class="hidden" style="margin-top: 10px; gap: 8px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>תאריך ביקור אחרון:</label>
+                    <input type="date" id="field_תאריך_ביקור" name="תאריך_ביקור">
+                </div>
+                <div id="viewer_name_container" class="hidden">
+                    <label>מי ראה (שם):</label>
+                    <input type="text" id="field_מי_ראה_שם" name="מי_ראה_שם" placeholder="שם מי שביקר">
+                </div>
+            </div>
+        </div>
+
         <div class="grid-2">
             <div class="form-group"><label>בעלי דירה - שם 1:</label><input type="text" id="field_בעלים_1_שם" name="בעלים_1_שם"></div>
             <div class="form-group"><label>בעלי דירה - טלפון 1:</label><input type="tel" id="field_בעלים_1_טלפון" name="בעלים_1_טלפון" maxlength="11" placeholder="05X-XXXXXXX"></div>
