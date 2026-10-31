@@ -958,6 +958,57 @@ dialog.modal-dialog::backdrop {
   border-color: #dc2626;
 }
 
+/* Agent filter tabs */
+.agent-filter-tabs {
+  margin-top: 8px;
+}
+
+.filter-tab#tab_agent_yes.active {
+  background: #b45309;
+  border-color: #b45309;
+}
+
+.filter-tab#tab_agent_no.active {
+  background: #475569;
+  border-color: #475569;
+}
+
+/* Quick agent filter button states */
+.quick-filter-toggle-btn.agent-active {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fbbf24;
+  box-shadow: 0 1px 3px rgba(180, 83, 9, 0.15);
+}
+
+.quick-filter-toggle-btn.agent-active:hover {
+  background: #fde68a;
+}
+
+.quick-filter-toggle-btn.no-agent-active {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #94a3b8;
+  box-shadow: 0 1px 3px rgba(71, 85, 105, 0.12);
+}
+
+.quick-filter-toggle-btn.no-agent-active:hover {
+  background: #e2e8f0;
+}
+
+/* Agent/Direct tags on cards */
+.apt-tag.tag-agent {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
+}
+
+.apt-tag.tag-direct {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
 .apt-card-actions {
   display: flex;
   gap: 6px;

@@ -22,6 +22,10 @@
                         <span id="quick_filter_icon">🎯</span>
                         <span id="quick_filter_label">רלוונטי בלבד</span>
                     </button>
+                    <button type="button" id="quick_agent_filter_btn" class="quick-filter-toggle-btn" onclick="toggleQuickAgentFilter()" title="סינון לפי תיווך: כולם / עם מתווך / ללא מתווך">
+                        <span id="quick_agent_icon">🏠</span>
+                        <span id="quick_agent_label">כולם</span>
+                    </button>
                 </div>
             </div>
 
@@ -1173,6 +1177,11 @@
                     <button type="button" class="filter-tab active" id="tab_filter_all" onclick="setFormsRelevanceFilter('all')">הכל (<span id="count_all">0</span>)</button>
                     <button type="button" class="filter-tab" id="tab_filter_relevant" onclick="setFormsRelevanceFilter('relevant')">✔ רלוונטי (<span id="count_relevant">0</span>)</button>
                     <button type="button" class="filter-tab" id="tab_filter_not_relevant" onclick="setFormsRelevanceFilter('not_relevant')">✖ לא רלוונטי (<span id="count_not_relevant">0</span>)</button>
+                </div>
+                <div class="modal-filter-tabs agent-filter-tabs">
+                    <button type="button" class="filter-tab active" id="tab_agent_all" onclick="setFormsAgentFilter('all')">🏠 כולם</button>
+                    <button type="button" class="filter-tab" id="tab_agent_yes" onclick="setFormsAgentFilter('yes')">🤝 עם מתווך (<span id="count_agent_yes">0</span>)</button>
+                    <button type="button" class="filter-tab" id="tab_agent_no" onclick="setFormsAgentFilter('no')">👤 ללא מתווך (<span id="count_agent_no">0</span>)</button>
                 </div>
             </div>
 

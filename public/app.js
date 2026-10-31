@@ -329,6 +329,7 @@ function updateRelevanceBadge(value) {
 }
 
 let quickSelectFilter = localStorage.getItem('apt_quick_filter_preference') || 'relevant';
+let quickAgentFilter = localStorage.getItem('apt_quick_agent_preference') || 'all'; // 'all' | 'agent' | 'no_agent'
 
 function toggleQuickSelectFilter() {
   quickSelectFilter = (quickSelectFilter === 'relevant') ? 'all' : 'relevant';
@@ -357,6 +358,45 @@ function updateQuickSelectFilterBtn() {
   }
 }
 
+function toggleQuickAgentFilter() {
+  // Cycle: all → agent → no_agent → all
+  if (quickAgentFilter === 'all') quickAgentFilter = 'agent';
+  else if (quickAgentFilter === 'agent') quickAgentFilter = 'no_agent';
+  else quickAgentFilter = 'all';
+
+  localStorage.setItem('apt_quick_agent_preference', quickAgentFilter);
+  updateQuickAgentFilterBtn();
+  updateQuickSelect();
+
+  const msgs = { all: 'תיווך: מציג את כל הדירות', agent: 'תיווך: מציג עם מתווך בלבד', no_agent: 'תיווך: מציג ללא מתווך בלבד' };
+  showToast(msgs[quickAgentFilter], 'info');
+}
+
+function updateQuickAgentFilterBtn() {
+  const btn = document.getElementById('quick_agent_filter_btn');
+  const icon = document.getElementById('quick_agent_icon');
+  const label = document.getElementById('quick_agent_label');
+  if (!btn) return;
+
+  btn.classList.remove('agent-active', 'no-agent-active');
+
+  if (quickAgentFilter === 'agent') {
+    btn.classList.add('agent-active');
+    btn.title = 'תיווך: עם מתווך בלבד (לחץ לללא מתווך)';
+    if (icon) icon.innerText = '🤝';
+    if (label) label.innerText = 'עם מתווך';
+  } else if (quickAgentFilter === 'no_agent') {
+    btn.classList.add('no-agent-active');
+    btn.title = 'תיווך: ללא מתווך בלבד (לחץ להצגת כולם)';
+    if (icon) icon.innerText = '👤';
+    if (label) label.innerText = 'ללא מתווך';
+  } else {
+    btn.title = 'תיווך: כולם (לחץ לסינון עם מתווך)';
+    if (icon) icon.innerText = '🏠';
+    if (label) label.innerText = 'כולם';
+  }
+}
+
 function createQuickSelectOption(form, isNotRelevant = false) {
   const opt = document.createElement('option');
   opt.value = form.id;
@@ -374,6 +414,7 @@ function updateQuickSelect() {
   if (!aptQuickSelect) return;
   aptQuickSelect.innerHTML = '';
   updateQuickSelectFilterBtn();
+  updateQuickAgentFilterBtn();
 
   if (allFormsSummaries.length === 0) {
     const emptyOpt = document.createElement('option');
@@ -384,40 +425,49 @@ function updateQuickSelect() {
   }
 
   const isRelevantForm = (form) => (form.is_relevant === undefined || form.is_relevant === 1 || form.is_relevant === '1' || form.is_relevant === true);
+  const formHasAgent = (form) => form.has_agent === 1 || form.has_agent === '1' || form.has_agent === true;
 
-  const relevantForms = allFormsSummaries.filter(isRelevantForm);
-  const notRelevantForms = allFormsSummaries.filter(f => !isRelevantForm(f));
+  // Forms that pass BOTH active filters
+  const passesFilters = (form) => {
+    if (quickSelectFilter === 'relevant' && !isRelevantForm(form)) return false;
+    if (quickAgentFilter === 'agent' && !formHasAgent(form)) return false;
+    if (quickAgentFilter === 'no_agent' && formHasAgent(form)) return false;
+    return true;
+  };
+
+  const visibleForms = allFormsSummaries.filter(passesFilters);
+  // Track which IDs end up in the dropdown so we know if current is missing
+  const renderedIds = new Set();
 
   if (quickSelectFilter === 'relevant') {
-    // Show relevant forms
-    if (relevantForms.length === 0) {
+    // Flat list — only relevant forms that pass agent filter
+    if (visibleForms.length === 0) {
       const noneOpt = document.createElement('option');
       noneOpt.value = '';
-      noneOpt.innerText = 'אין דירות רלוונטיות (לחץ "רלוונטי בלבד" לצפיה בכל)';
+      noneOpt.innerText = 'אין דירות תואמות לסינון הנוכחי';
       aptQuickSelect.appendChild(noneOpt);
     } else {
-      relevantForms.forEach(form => {
+      visibleForms.forEach(form => {
         aptQuickSelect.appendChild(createQuickSelectOption(form, false));
+        renderedIds.add(form.id);
       });
     }
-
-    // If current active form is marked not relevant, show it in a dedicated optgroup so user does not lose view
-    if (currentFormId && notRelevantForms.some(f => f.id === currentFormId)) {
-      const currentNotRel = notRelevantForms.find(f => f.id === currentFormId);
-      if (currentNotRel) {
-        const curGroup = document.createElement('optgroup');
-        curGroup.label = '⚠️ דירה פתוחה כעת (לא רלוונטית)';
-        curGroup.appendChild(createQuickSelectOption(currentNotRel, true));
-        aptQuickSelect.appendChild(curGroup);
-      }
-    }
   } else {
-    // Show all forms organized by relevance
+    // Grouped by relevance — all forms that pass agent filter
+    const agentFiltered = allFormsSummaries.filter(form => {
+      if (quickAgentFilter === 'agent') return formHasAgent(form);
+      if (quickAgentFilter === 'no_agent') return !formHasAgent(form);
+      return true;
+    });
+    const relevantForms = agentFiltered.filter(isRelevantForm);
+    const notRelevantForms = agentFiltered.filter(f => !isRelevantForm(f));
+
     if (relevantForms.length > 0) {
       const relGroup = document.createElement('optgroup');
       relGroup.label = `✅ דירות רלוונטיות (${relevantForms.length})`;
       relevantForms.forEach(form => {
         relGroup.appendChild(createQuickSelectOption(form, false));
+        renderedIds.add(form.id);
       });
       aptQuickSelect.appendChild(relGroup);
     }
@@ -427,8 +477,27 @@ function updateQuickSelect() {
       notRelGroup.label = `❌ לא רלוונטיות (${notRelevantForms.length})`;
       notRelevantForms.forEach(form => {
         notRelGroup.appendChild(createQuickSelectOption(form, true));
+        renderedIds.add(form.id);
       });
       aptQuickSelect.appendChild(notRelGroup);
+    }
+
+    if (relevantForms.length === 0 && notRelevantForms.length === 0) {
+      const noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.innerText = 'אין דירות תואמות לסינון הנוכחי';
+      aptQuickSelect.appendChild(noneOpt);
+    }
+  }
+
+  // Always ensure the currently-open form is visible, even if filtered out
+  if (currentFormId && !renderedIds.has(currentFormId)) {
+    const currentForm = allFormsSummaries.find(f => f.id === currentFormId);
+    if (currentForm) {
+      const curGroup = document.createElement('optgroup');
+      curGroup.label = '⚠️ דירה פתוחה כעת (מחוץ לסינון)';
+      curGroup.appendChild(createQuickSelectOption(currentForm, !isRelevantForm(currentForm)));
+      aptQuickSelect.appendChild(curGroup);
     }
   }
 
@@ -1127,6 +1196,7 @@ function closeFormsModal() {
 }
 
 let currentRelevanceFilter = 'all';
+let currentAgentFilter = 'all'; // 'all' | 'yes' | 'no'
 
 function setFormsRelevanceFilter(filter) {
   currentRelevanceFilter = filter;
@@ -1141,41 +1211,70 @@ function setFormsRelevanceFilter(filter) {
   renderFormsListModal();
 }
 
+function setFormsAgentFilter(filter) {
+  currentAgentFilter = filter;
+  const tabs = ['all', 'yes', 'no'];
+  tabs.forEach(f => {
+    const tabEl = document.getElementById(`tab_agent_${f}`);
+    if (tabEl) {
+      if (f === filter) tabEl.classList.add('active');
+      else tabEl.classList.remove('active');
+    }
+  });
+  renderFormsListModal();
+}
+
 function renderFormsListModal(filterQuery = '') {
   if (!formsCardsContainer) return;
   
   const query = (filterQuery || (formsSearchInput ? formsSearchInput.value : '')).trim().toLowerCase();
   formsCardsContainer.innerHTML = '';
 
+  // Helper: check if a form has an agent
+  const formHasAgent = (form) => form.has_agent === 1 || form.has_agent === '1' || form.has_agent === true;
+
   // Calculate counters
   let countAll = allFormsSummaries.length;
   let countRelevant = 0;
   let countNotRelevant = 0;
+  let countAgentYes = 0;
+  let countAgentNo = 0;
 
   allFormsSummaries.forEach(form => {
     const isRel = (form.is_relevant === undefined || form.is_relevant === 1 || form.is_relevant === '1' || form.is_relevant === true);
     if (isRel) countRelevant++;
     else countNotRelevant++;
+    if (formHasAgent(form)) countAgentYes++;
+    else countAgentNo++;
   });
 
   const countAllEl = document.getElementById('count_all');
   const countRelEl = document.getElementById('count_relevant');
   const countNotRelEl = document.getElementById('count_not_relevant');
+  const countAgentYesEl = document.getElementById('count_agent_yes');
+  const countAgentNoEl = document.getElementById('count_agent_no');
   if (countAllEl) countAllEl.innerText = countAll;
   if (countRelEl) countRelEl.innerText = countRelevant;
   if (countNotRelEl) countNotRelEl.innerText = countNotRelevant;
+  if (countAgentYesEl) countAgentYesEl.innerText = countAgentYes;
+  if (countAgentNoEl) countAgentNoEl.innerText = countAgentNo;
 
   const filtered = allFormsSummaries.filter(form => {
     const isRel = (form.is_relevant === undefined || form.is_relevant === 1 || form.is_relevant === '1' || form.is_relevant === true);
     if (currentRelevanceFilter === 'relevant' && !isRel) return false;
     if (currentRelevanceFilter === 'not_relevant' && isRel) return false;
 
+    // Agent filter
+    if (currentAgentFilter === 'yes' && !formHasAgent(form)) return false;
+    if (currentAgentFilter === 'no' && formHasAgent(form)) return false;
+
     if (!query) return true;
     const title = (form.title || '').toLowerCase();
     const address = (form.address || '').toLowerCase();
     const rooms = (form.rooms || '').toLowerCase();
     const price = (form.price_display || '').toLowerCase();
-    return title.includes(query) || address.includes(query) || rooms.includes(query) || price.includes(query);
+    const agentName = (form.agent_name || '').toLowerCase();
+    return title.includes(query) || address.includes(query) || rooms.includes(query) || price.includes(query) || agentName.includes(query);
   });
 
   if (filtered.length === 0) {
@@ -1190,12 +1289,17 @@ function renderFormsListModal(filterQuery = '') {
   filtered.forEach(form => {
     const isCurrent = form.id === currentFormId;
     const isRel = (form.is_relevant === undefined || form.is_relevant === 1 || form.is_relevant === '1' || form.is_relevant === true);
+    const hasAgent = formHasAgent(form);
     const address = form.address || form.title || 'דירה חדשה (ללא כתובת)';
     const dateFormatted = form.updated_at ? new Date(form.updated_at).toLocaleDateString('he-IL') : '';
 
     const relevanceTag = isRel 
       ? `<span class="apt-tag tag-relevant">✔ רלוונטי</span>`
       : `<span class="apt-tag tag-not-relevant">✖ לא רלוונטי</span>`;
+
+    const agentTag = hasAgent
+      ? `<span class="apt-tag tag-agent">🤝 מתווך${form.agent_name ? ': ' + form.agent_name : ''}</span>`
+      : `<span class="apt-tag tag-direct">👤 ישיר</span>`;
 
     const card = document.createElement('div');
     card.className = `apt-card ${isCurrent ? 'active' : ''} ${!isRel ? 'is-not-relevant' : ''}`;
@@ -1209,6 +1313,7 @@ function renderFormsListModal(filterQuery = '') {
         <div class="apt-card-title">${address} ${isCurrent ? ' <span style="color:#15803d; font-size:12px;">(פעיל כעת)</span>' : ''}</div>
         <div class="apt-card-tags">
           ${relevanceTag}
+          ${agentTag}
           ${form.price_display ? `<span class="apt-tag">💰 ${form.price_display}</span>` : ''}
           ${form.rooms ? `<span class="apt-tag">🛏️ ${form.rooms} חדרים</span>` : ''}
           ${form.floor ? `<span class="apt-tag">🏢 קומה ${form.floor}</span>` : ''}

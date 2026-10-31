@@ -47,14 +47,24 @@ try {
 
 /**
  * Get all apartments (summary list for quick switching/rendering)
+ * Dynamically computes has_agent from data_json so it's always up-to-date.
  */
 function getAllApartments() {
   const stmt = db.prepare(`
-    SELECT id, title, address, price_display, price_numeric, rooms, floor, total_floors, area, is_relevant, created_at, updated_at
+    SELECT id, title, address, price_display, price_numeric, rooms, floor, total_floors, area, is_relevant, data_json, created_at, updated_at
     FROM apartments
     ORDER BY updated_at DESC
   `);
-  return stmt.all();
+  return stmt.all().map(row => {
+    let d = {};
+    try { d = JSON.parse(row.data_json || '{}'); } catch (e) {}
+    // Support all field name variants used historically
+    const agentVal = d['דרך_תיווך'] || d['דרך תיווך'] || d['תיווך'] || '';
+    const has_agent = agentVal === 'כן' ? 1 : 0;
+    const agent_name = d['שם_מתווך'] || d['שם מתווך'] || '';
+    const { data_json, ...rest } = row; // strip data_json from returned object
+    return { ...rest, has_agent, agent_name };
+  });
 }
 
 /**
