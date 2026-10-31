@@ -223,6 +223,7 @@ async function loadFormById(id) {
       updateHeaderInfo(form);
       updateQuickSelect();
       renderFormsListModal();
+      loadFilesForForm(form.id);
       
       setSyncStatus('synced', 'מסונכרן עם השרת');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1464,4 +1465,205 @@ function showToast(message, type = 'info') {
     toast.style.transition = 'all 0.3s ease';
     setTimeout(() => toast.remove(), 300);
   }, 3200);
+}
+
+
+/* ==========================================================================
+   File Attachments
+   ========================================================================== */
+
+const MAX_FILES = 20;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = /\.(jpe?g|png|gif|webp|bmp|svg|pdf|doc|docx|txt)$/i;
+const IMAGE_MIME = /^image\//;
+
+function fileIcon(name) {
+  const ext = (name.match(/\.(\w+)$/) || [])[1]?.toLowerCase();
+  if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return '🖼️';
+  if (ext === 'pdf') return '📄';
+  if (['doc','docx'].includes(ext)) return '📝';
+  if (ext === 'txt') return '📃';
+  return '📎';
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+async function loadFilesForForm(formId) {
+  const list = document.getElementById('files_list');
+  if (!list || !formId) return;
+  list.innerHTML = '<div class="files-empty">טוען קבצים...</div>';
+  try {
+    const res = await fetch(`/api/forms/${formId}/files`);
+    const data = await res.json();
+    if (data.success) renderFileList(data.files, formId);
+    else list.innerHTML = '<div class="files-empty">שגיאה בטעינת קבצים</div>';
+  } catch (e) {
+    list.innerHTML = '<div class="files-empty">שגיאה בחיבור לשרת</div>';
+  }
+}
+
+function renderFileList(files, formId) {
+  const list = document.getElementById('files_list');
+  if (!list) return;
+  if (!files || files.length === 0) {
+    list.innerHTML = '<div class="files-empty">אין קבצים מצורפים</div>';
+    return;
+  }
+  list.innerHTML = '';
+  files.forEach(file => {
+    const item = document.createElement('div');
+    item.className = 'file-item';
+
+    const isImage = IMAGE_MIME.test(file.type || '') || /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(file.name);
+    
+    // Thumbnail or File Icon
+    let mediaEl;
+    if (isImage) {
+      const img = document.createElement('img');
+      img.className = 'file-item-thumb';
+      img.src = `/api/forms/${encodeURIComponent(formId)}/files/${encodeURIComponent(file.name)}`;
+      img.alt = file.name;
+      img.loading = 'lazy';
+      mediaEl = img;
+    } else {
+      const icon = document.createElement('div');
+      icon.className = 'file-item-icon';
+      icon.textContent = fileIcon(file.name);
+      mediaEl = icon;
+    }
+
+    // Info
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'file-item-info';
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'file-item-name';
+    nameDiv.title = file.name;
+    nameDiv.textContent = file.name;
+
+    const sizeDiv = document.createElement('div');
+    sizeDiv.className = 'file-item-size';
+    sizeDiv.textContent = formatBytes(file.size);
+
+    infoDiv.appendChild(nameDiv);
+    infoDiv.appendChild(sizeDiv);
+
+    // Actions
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'file-item-actions';
+
+    const downloadLink = document.createElement('a');
+    downloadLink.className = 'file-item-btn';
+    downloadLink.href = `/api/forms/${encodeURIComponent(formId)}/files/${encodeURIComponent(file.name)}?download=1`;
+    downloadLink.download = file.name;
+    downloadLink.textContent = '⬇️ הורד';
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'file-item-btn btn-delete';
+    deleteBtn.textContent = '🗑️ מחק';
+    deleteBtn.onclick = () => deleteFile(formId, file.name);
+
+    actionsDiv.appendChild(downloadLink);
+    actionsDiv.appendChild(deleteBtn);
+
+    item.appendChild(mediaEl);
+    item.appendChild(infoDiv);
+    item.appendChild(actionsDiv);
+
+    list.appendChild(item);
+  });
+}
+
+async function deleteFile(formId, filename) {
+  if (!confirm(`למחוק את הקובץ "${filename}"?`)) return;
+  try {
+    const res = await fetch(`/api/forms/${encodeURIComponent(formId)}/files/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('הקובץ נמחק', 'success');
+      loadFilesForForm(formId);
+    } else {
+      showToast(data.error || 'שגיאה במחיקת קובץ', 'error');
+    }
+  } catch (e) {
+    showToast('שגיאה בחיבור לשרת', 'error');
+  }
+}
+
+async function uploadFiles(fileList) {
+  if (!currentFormId) { showToast('יש לטעון דירה לפני העלאת קבצים', 'error'); return; }
+
+  // Client-side validation
+  const valid = [];
+  for (const f of fileList) {
+    if (!ALLOWED_EXTENSIONS.test(f.name)) {
+      showToast(`סוג קובץ לא נתמך: ${f.name}`, 'error'); continue;
+    }
+    if (f.size > MAX_FILE_BYTES) {
+      showToast(`קובץ גדול מדי (מקסימום 20MB): ${f.name}`, 'error'); continue;
+    }
+    valid.push(f);
+  }
+  if (valid.length === 0) return;
+
+  // Check current count
+  const listEl = document.getElementById('files_list');
+  const currentCount = listEl ? listEl.querySelectorAll('.file-item').length : 0;
+  const canUpload = MAX_FILES - currentCount;
+  if (canUpload <= 0) {
+    showToast(`הגעת למגבלת ${MAX_FILES} קבצים לדירה זו`, 'error');
+    return;
+  }
+  const toUpload = valid.slice(0, canUpload);
+  if (toUpload.length < valid.length) {
+    showToast(`רק ${canUpload} קבצים יועלו (מגבלת ${MAX_FILES})`, 'info');
+  }
+
+  const progress = document.getElementById('file_upload_progress');
+  if (progress) { progress.textContent = `מעלה ${toUpload.length} קובץ/קבצים...`; progress.classList.remove('hidden'); }
+
+  const formData = new FormData();
+  toUpload.forEach(f => formData.append('files', f));
+
+  try {
+    const res = await fetch(`/api/forms/${currentFormId}/files`, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`${data.files.length} קבצים הועלו בהצלחה`, 'success');
+      loadFilesForForm(currentFormId);
+    } else {
+      showToast(data.error || 'שגיאה בהעלאה', 'error');
+    }
+  } catch (e) {
+    showToast('שגיאה בחיבור לשרת', 'error');
+  } finally {
+    if (progress) progress.classList.add('hidden');
+  }
+}
+
+function handleFileInputChange(input) {
+  if (input.files && input.files.length > 0) {
+    uploadFiles(Array.from(input.files));
+    input.value = ''; // reset so same file can be re-selected
+  }
+}
+
+function fileDragOver(e) {
+  e.preventDefault();
+  document.getElementById('file_drop_zone')?.classList.add('drag-over');
+}
+
+function fileDragLeave(e) {
+  document.getElementById('file_drop_zone')?.classList.remove('drag-over');
+}
+
+function fileDrop(e) {
+  e.preventDefault();
+  document.getElementById('file_drop_zone')?.classList.remove('drag-over');
+  if (e.dataTransfer.files.length > 0) uploadFiles(Array.from(e.dataTransfer.files));
 }

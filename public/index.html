@@ -1107,6 +1107,19 @@
             <div id="notes_print_mirror"></div>
         </div>
 
+        <!-- קבצים מצורפים -->
+        <h2>📎 קבצים מצורפים</h2>
+        <div class="form-group files-section">
+            <div id="file_drop_zone" class="file-drop-zone" onclick="document.getElementById('file_input').click()" ondragover="fileDragOver(event)" ondragleave="fileDragLeave(event)" ondrop="fileDrop(event)">
+                <span class="file-drop-icon">📂</span>
+                <span class="file-drop-text">גרור קבצים לכאן או <strong>לחץ לבחירה</strong></span>
+                <span class="file-drop-hint">תמונות, PDF, Word, TXT · עד 20 קבצים · עד 20MB לקובץ</span>
+            </div>
+            <input type="file" id="file_input" multiple accept="image/*,.pdf,.doc,.docx,.txt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none" onchange="handleFileInputChange(this)">
+            <div id="file_upload_progress" class="file-upload-progress hidden"></div>
+            <div id="files_list" class="files-list"></div>
+        </div>
+
             <!-- כפתורי פעולה בתחתית הטופס -->
             <div class="form-footer-actions">
                 <button type="submit" class="save-main-btn">

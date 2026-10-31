@@ -2,7 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 const qrcode = require('qrcode');
+const multer = require('multer');
 const db = require('./database');
 
 const app = express();
@@ -14,6 +16,78 @@ app.set('trust proxy', true);
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Files storage directory
+const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, 'data');
+const filesDir = path.join(dataDir, 'files');
+if (!fs.existsSync(filesDir)) fs.mkdirSync(filesDir, { recursive: true });
+
+// Multer config: per-form subfolder, 20 MB limit, allowed types
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain'
+]);
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+const MAX_FILES_PER_FORM = 20;
+
+// Helper: Fix filename encoding if received as Latin-1/ISO-8859-1 from busboy/multer
+function fixFilenameEncoding(filename) {
+  if (!filename) return '';
+  try {
+    // Busboy / Multer historically decodes UTF-8 multipart filenames as Latin-1.
+    // If that happened, converting latin1 -> utf8 restores Hebrew/Unicode without loss.
+    const decoded = Buffer.from(filename, 'latin1').toString('utf8');
+    if (!decoded.includes('\uFFFD')) {
+      return decoded;
+    }
+  } catch (e) {}
+  return filename;
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const formDir = path.join(filesDir, req.params.id);
+    if (!fs.existsSync(formDir)) fs.mkdirSync(formDir, { recursive: true });
+    cb(null, formDir);
+  },
+  filename: (req, file, cb) => {
+    // Preserve full Hebrew / Unicode filename while sanitizing illegal filesystem chars
+    const rawName = fixFilenameEncoding(file.originalname);
+    const safe = rawName.replace(/[/\\?%*:|"<>]/g, '_').trim() || 'file';
+    const formDir = path.join(filesDir, req.params.id);
+    let target = safe;
+    let counter = 1;
+    while (fs.existsSync(path.join(formDir, target))) {
+      const ext = path.extname(safe);
+      const base = path.basename(safe, ext);
+      target = `${base}_(${counter})${ext}`;
+      counter++;
+    }
+    cb(null, target);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const decodedName = fixFilenameEncoding(file.originalname);
+  file.originalname = decodedName;
+  if (ALLOWED_MIME_TYPES.has(file.mimetype)) {
+    cb(null, true);
+  } else {
+    // Fallback by extension (in case browser sends application/octet-stream for docx/txt)
+    const ext = path.extname(decodedName).toLowerCase();
+    const allowedExts = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.pdf', '.doc', '.docx', '.txt']);
+    if (allowedExts.has(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`סוג קובץ לא מותר: ${file.mimetype}`), false);
+    }
+  }
+};
+
+const upload = multer({ storage, fileFilter, limits: { fileSize: MAX_FILE_SIZE } });
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -275,6 +349,77 @@ app.get('/api/network-info', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// ── File Upload API ────────────────────────────────────────────────────────
+
+// List files for a form
+app.get('/api/forms/:id/files', (req, res) => {
+  const formDir = path.join(filesDir, req.params.id);
+  if (!fs.existsSync(formDir)) return res.json({ success: true, files: [] });
+  try {
+    const entries = fs.readdirSync(formDir).map(name => {
+      const stat = fs.statSync(path.join(formDir, name));
+      return { name, size: stat.size, mtime: stat.mtime };
+    }).sort((a, b) => a.mtime - b.mtime);
+    res.json({ success: true, files: entries });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Upload files for a form (up to 20)
+app.post('/api/forms/:id/files', (req, res) => {
+  // Check current count first
+  const formDir = path.join(filesDir, req.params.id);
+  const existing = fs.existsSync(formDir) ? fs.readdirSync(formDir).length : 0;
+
+  const uploader = upload.array('files', MAX_FILES_PER_FORM - existing);
+  uploader(req, res, (err) => {
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE'
+        ? 'גודל הקובץ חורג מהמותר (מקסימום 20MB)'
+        : err.message || 'שגיאה בהעלאת קובץ';
+      return res.status(400).json({ success: false, error: msg });
+    }
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, error: 'לא נבחרו קבצים' });
+    }
+    const uploaded = req.files.map(f => ({ name: f.filename, size: f.size }));
+    res.json({ success: true, files: uploaded });
+  });
+});
+
+// Download / serve a file (supports inline preview for images and attachment download)
+app.get('/api/forms/:id/files/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(filesDir, req.params.id, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, error: 'קובץ לא נמצא' });
+
+  if (req.query.download === '1') {
+    res.download(filePath, filename, (err) => {
+      if (err && !res.headersSent) {
+        res.status(500).json({ success: false, error: 'שגיאה בהורדת הקובץ' });
+      }
+    });
+  } else {
+    // Serve inline (e.g. for image thumbnail preview)
+    res.sendFile(filePath);
+  }
+});
+
+// Delete a file
+app.delete('/api/forms/:id/files/:filename', (req, res) => {
+  const filePath = path.join(filesDir, req.params.id, req.params.filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, error: 'קובץ לא נמצא' });
+  try {
+    fs.unlinkSync(filePath);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ──────────────────────────────────────────────────────────────────────────
 
 // Start listening on 0.0.0.0 (all network interfaces)
 const server = app.listen(PORT, '0.0.0.0', async () => {
