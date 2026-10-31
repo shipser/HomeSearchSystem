@@ -49,13 +49,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSSE();
   initEventListeners();
   initPhoneMasks();
-  
-  // Load forms from server
-  await loadFormsList();
-  
+
+  // Check for a direct ?id= link — if present, load that form instead of the first
+  const urlParams = new URLSearchParams(window.location.search);
+  const directId = urlParams.get('id');
+
+  // Load forms list (pass directId so it won't auto-select first)
+  await loadFormsList(!directId);
+
+  if (directId) {
+    await loadFormById(directId);
+  }
+
   // Check for local storage legacy forms to import
   checkLegacyLocalStorage();
-  
+
   // Preload network info for QR modal
   preloadNetworkInfo();
 });
@@ -208,6 +216,9 @@ async function loadFormById(id) {
       currentFormData = form.data || {};
       formIdInput.value = form.id;
 
+      // Update the browser URL so it always reflects the active form
+      history.replaceState(null, '', `/?id=${encodeURIComponent(form.id)}`);
+
       populateFormWithData(currentFormData);
       updateHeaderInfo(form);
       updateQuickSelect();
@@ -236,6 +247,34 @@ function updateHeaderInfo(formMeta) {
     ? (formMeta.is_relevant === 1 || formMeta.is_relevant === true || formMeta.is_relevant === '1')
     : (currentFormData['רלוונטיות'] !== 'לא רלוונטי');
   updateRelevanceBadge(isRelevant ? 'רלוונטי' : 'לא רלוונטי');
+}
+
+function copyDirectLink() {
+  if (!currentFormId) {
+    showToast('אין דירה פעילה לשיתוף', 'error');
+    return;
+  }
+  const url = `${window.location.origin}/?id=${encodeURIComponent(currentFormId)}`;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copy_link_btn');
+    if (btn) {
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<span>✅</span><span>הועתק!</span>';
+      setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+    }
+    showToast('הקישור הועתק ללוח', 'success');
+  }).catch(() => {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = url;
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    showToast('הקישור הועתק ללוח', 'success');
+  });
 }
 
 function handleRelevanceToggle(value, triggerSave = true) {
